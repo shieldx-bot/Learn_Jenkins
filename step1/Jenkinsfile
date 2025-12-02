@@ -1,4 +1,4 @@
-pipline  { 
+pipeline  { 
     agent any 
     environment { 
         DOCKER_CREADS = credentials('docker-hub-login')
