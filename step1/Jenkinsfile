@@ -2,6 +2,7 @@ pipline  {
     agent any 
     environment { 
         DOCKER_CREADS = credentials('docker-hub-login')
+        IMAGE_TAG = "v${BUILD_NUMBER}"
     }
     stages { 
         stage('Build & Push Docker') { 
@@ -9,14 +10,14 @@ pipline  {
                 git url : 'https://github.com/shieldx-bot/backend_exemple.git', branch: 'main' 
 
                 sh 'npm install ' 
-                sh 'docker build -t shieldbot/backend_exemple:latest .'
+                sh "docker build -t shieldxbot/backend_exemple:${IMAGE_TAG} ."
                 
                  
                 sh '''
                  echo "$DOCKER_CREADS_PSW" | docker login -u "$DOCKER_CREADS_USR" --password-stdin
                     '''
 
-                sh 'docker push shieldbot/backend_exemple:latest'
+                sh "docker push shieldxbot/backend_exemple:${IMAGE_TAG}"
                 
                            
                 }
@@ -25,7 +26,9 @@ pipline  {
         stage('Deploy to Kubernetes') { 
             steps { 
                 withKubeConfig([credentialsId: 'k8s-kubeconfig']) { 
-                    sh 'kubectl  apply -f ./deployment.yaml'
+                    sh "sed -i 's|shieldxbot/backend_exemple:.*|shieldxbot/backend_exemple:${IMAGE_TAG}|' ./k8s/deployment.yaml"
+                    sh 'cat ./k8s/deployment.yaml'
+                    sh 'kubectl  apply -f ./k8s/deployment.yaml'
                     sh 'kubectl rollout status  deployment/backend-exemple-deployment'
                 }
             }
