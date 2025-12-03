@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: shieldxbot/backend_exemple:Docker_Image_Tag
+          image: shieldxbot/backend_exemple:Docker_version
           resources:
             limits:
               memory: "128Mi"
