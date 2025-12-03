@@ -7,10 +7,11 @@ pipeline  {
     stages { 
         stage('Build & Push Docker') { 
             steps { 
-                git url : 'https://github.com/shieldx-bot/backend_exemple.git', branch: 'main' 
-
-                sh 'npm install ' 
-                sh "docker build -t shieldxbot/backend_exemple:${IMAGE_TAG} ."
+                dir('backend_exemple') {
+                    git url : 'https://github.com/shieldx-bot/backend_exemple.git', branch: 'main'
+                    sh 'npm install'
+                    sh "docker build -t shieldxbot/backend_exemple:${IMAGE_TAG} ."
+                }
                 
                  
                 sh '''
