@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp
+  name: step1-backend-deployment
 spec:
   selector:
     matchLabels:
-      app: myapp
+      app: step1-backend-deployment
   template:
     metadata:
       labels:
-        app: myapp
+        app: step1-backend-deployment
     spec:
       containers:
-        - name: myapp
+        - name: step1-backend-deployment
           image: shieldxbot/backend_exemple:Docker_version
           resources:
             limits:
