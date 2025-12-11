@@ -26,7 +26,7 @@ pipeline  {
         }
         stage('Deploy to Kubernetes') { 
             steps { 
-                withKubeConfig([credentialsId: 'k8s-kubeconfig']) { 
+                withKubeConfig([credentialsId: 'kubeconfig-jenkins']) { 
                     // sh "sed -i 's/Docker_version/${IMAGE_TAG}/g' ./step1/k8s/Deployment.yaml"
                     // sh 'cat ./step1/k8s/Deployment.yaml'
                     // sh 'kubectl  apply -f ./step1/k8s/Deployment.yaml'
