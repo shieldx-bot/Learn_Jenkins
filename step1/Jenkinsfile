@@ -5,34 +5,34 @@ pipeline  {
         IMAGE_TAG = "v${BUILD_NUMBER}"
     }
     stages { 
-        // stage('Build & Push Docker') { 
-        //     steps { 
-        //         dir('backend_exemple') {
-        //             git url : 'https://github.com/shieldx-bot/backend_exemple.git', branch: 'main'
-        //             sh 'npm install'
-        //             sh "docker build -t shieldxbot/backend_exemple:${IMAGE_TAG} ."
-        //         }
+        stage('Build & Push Docker') { 
+            steps { 
+                dir('backend_exemple') {
+                    git url : 'https://github.com/shieldx-bot/backend_exemple.git', branch: 'main'
+                    sh 'npm install'
+                    sh "docker build -t shieldxbot/backend_exemple:${IMAGE_TAG} ."
+                }
                 
                  
-        //         sh '''
-        //          echo "$DOCKER_CREADS_PSW" | docker login -u "$DOCKER_CREADS_USR" --password-stdin
-        //             '''
+                sh '''
+                 echo "$DOCKER_CREADS_PSW" | docker login -u "$DOCKER_CREADS_USR" --password-stdin
+                    '''
 
-        //         sh "docker push shieldxbot/backend_exemple:${IMAGE_TAG}"
+                sh "docker push shieldxbot/backend_exemple:${IMAGE_TAG}"
                 
                            
-        //         }
+                }
                 
-        // }
+        }
         stage('Deploy to Kubernetes') { 
             steps { 
                 withKubeConfig([credentialsId: 'kubeconfig-jenkins']) { 
                     echo "Deploying to Kubernetes with image tag: ${IMAGE_TAG}"
+                    sh "sed -i 's/Docker_version/${IMAGE_TAG}/g' ./step1/k8s/Deployment.yaml"
+                    sh 'cat ./step1/k8s/Deployment.yaml'
+                    sh 'kubectl  apply -f ./step1/k8s/Deployment.yaml'
                     sh 'kubectl get pods'
-                    // sh "sed -i 's/Docker_version/${IMAGE_TAG}/g' ./step1/k8s/Deployment.yaml"
-                    // sh 'cat ./step1/k8s/Deployment.yaml'
-                    // sh 'kubectl  apply -f ./step1/k8s/Deployment.yaml'
-                    // sh 'kubectl rollout status  deployment/step1-backend-deployment'
+
                 }
             }
         }
