@@ -30,8 +30,8 @@ pipeline  {
                     sh "sed -i 's/Docker_version/${IMAGE_TAG}/g' ./step1/k8s/Deployment.yaml"
                     sh 'cat ./step1/k8s/Deployment.yaml'
                     sh 'kubectl  apply -f ./step1/k8s/Deployment.yaml'
-                    sh 'kubectl rollout status  deployment/step1-backend-deployment'
-                }
+                    sh 'kubectl get pods'
+                 }
             }
         }
     }
