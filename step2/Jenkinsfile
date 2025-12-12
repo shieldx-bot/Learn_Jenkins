@@ -36,8 +36,7 @@ pipeline{
             steps { 
                 dir('backend_exemple')  { 
                     git url: 'https://github.com/shieldx-bot/Learn_Jenkins.git' , branch:'main'
-                    sh 'ls -la'
-                    sh 'cd step2/backend_exemple && npm install'
+                    sh 'cd ./step2/backend2 && npm install'
                     
                 }
             }
@@ -63,7 +62,7 @@ pipeline{
             steps { 
                 dir('backend_exemple')  { 
                   sh "echo ${DOCKER_CREADS_PSW} | docker login -u $DOCKER_CREADS_USR --password-stdin"
-                  sh "cd ./step2/backend_exemple && docker build -t ${image_name}:${image_tag} ."
+                  sh "cd ./step2/backend2 && docker build -t ${image_name}:${image_tag} ."
 
                 }
             }
