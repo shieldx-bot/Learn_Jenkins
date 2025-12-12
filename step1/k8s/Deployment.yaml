@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: step1-backend-deployment
-          image: shieldxbot/backend_exemple:v34
+          image: shieldxbot/backend_exemple:Docker_version
           workingDir: /app
           command: ["node", "dist/index.js"]
           resources:
