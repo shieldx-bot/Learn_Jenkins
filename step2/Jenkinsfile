@@ -37,7 +37,7 @@ pipeline{
             }
             steps { 
                 dir('backend_exemple')  { 
-                    git url: 'https://github.com/shieldxbot/backend_exemple.git' , branch:"${BRANCH_NAME}"
+                    git url: 'https://github.com/shieldxbot/backend_exemple.git' , branch:'${BRANCH_NAME}'
                     sh 'ls -la'
                     sh 'npm install'
                     
