@@ -1,7 +1,5 @@
 pipeline{
-    agent{
-        label "node"
-    }
+    agent any
     environment{ 
         DOCKER_CREADS = credentials('docker-hub-login')
         image_name = 'shieldxbot/backend_exemple'
