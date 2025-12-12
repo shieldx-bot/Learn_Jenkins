@@ -32,6 +32,7 @@ pipeline  {
                     sh 'cat ./step1/k8s/Deployment.yaml'
                     sh 'microk8s kubectl  apply -f ./step1/k8s/Deployment.yaml'
                     sh 'microk8s kubectl get pods'
+                    sh 'microk8s kubectl rollout status deployment.apps/step1-backend-deployment'
 
                 }
             }

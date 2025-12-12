@@ -13,7 +13,9 @@ spec:
     spec:
       containers:
         - name: step1-backend-deployment
-          image: shieldxbot/backend_exemple:Docker_version
+          image: shieldxbot/backend_exemple:v34
+          workingDir: /app
+          command: ["node", "dist/index.js"]
           resources:
             limits:
               memory: "128Mi"
