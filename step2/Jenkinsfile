@@ -108,8 +108,10 @@ pipeline {
                         sh 'cat ./step2/k8s/Deployment.yaml'
                         // Nếu cần sudo cho microk8s, bạn phải cấu hình agent để có quyền hoặc dùng sudo không-interactive
                         sh 'microk8s kubectl apply -f ./step2/k8s/Deployment.yaml'
-                        sh 'microk8s kubectl get pods '
-                        sh 'microk8s kubectl rollout status deployment.apps/step2-backend-deployment  '
+                        sh 'microk8s kubectl apply -f ./step2/k8s/Service.yaml'
+                        sh 'microk8s kubectl get pods'
+                        sh 'microk8s kubectl get svc'
+                        sh 'microk8s kubectl rollout status deployment.apps/step2-backend-deployment'
                     }
                 }
             }

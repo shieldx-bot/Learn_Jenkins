@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: step2-backend-deployment
 spec:
-  type: NodePort
+  replicas: 1
   selector:
     matchLabels:
       app: step2-backend-deployment
@@ -27,9 +27,6 @@ spec:
           ports:
             - protocol: TCP
               containerPort: 3000
-              targetPort: 3000
-              nodePort: 30000
-
           env:
             - name: NODE_ENV
               value: "production"
