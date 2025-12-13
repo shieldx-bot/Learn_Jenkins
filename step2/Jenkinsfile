@@ -1,11 +1,14 @@
-pipeline{
+pipeline {
     agent any
-    environment{ 
-        DOCKER_CREADS = credentials('docker-hub-login')
-        image_name = 'shieldxbot/backend_exemple'
-        image_tag = "v${BUILD_NUMBER}-${BRANCH_NAME}"
+    environment{
+        // Nếu 'docker-hub-login' là username/password credential, Jenkins sẽ tạo:
+        // DOCKER_HUB_USR và DOCKER_HUB_PSW
+        DOCKER_HUB = credentials('docker-hub-login')
+        // Nếu telegram token/chat id là secret text, thì biến sẽ chứa giá trị trực tiếp
         TELEGRAM_TOKEN = credentials('telegram-bot-token')
         TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
+        image_name = 'shieldxbot/backend_exemple'
+        image_tag = "v${BUILD_NUMBER}-${BRANCH_NAME}"
     }
     stages{
 
@@ -13,78 +16,132 @@ pipeline{
             steps{
                 cleanWs()
             }
-            
+            post{
+                always{
+                    echo "========always========"
+                }
+                success{
+                    echo "========Clean Workspace executed successfully========"
+                }
+                failure{
+                    echo "========Clean Workspace execution failed========"
+                }
+            }
         }
 
-        stage("Git Clone Repository and Run Tests"){ 
-            when { 
-                anyOf { 
+        stage("Git Clone Repository and Run Tests"){
+            when {
+                anyOf {
                     branch 'main'
                     branch 'dev'
                 }
             }
-            steps { 
-                dir('backend_exemple')  { 
-                    git url: 'https://github.com/shieldx-bot/Learn_Jenkins.git' , branch:'main'
-                    sh 'cd ./step2/backend2 && npm install'
-                    
+            steps {
+                dir('backend_exemple')  {
+                    // clone vào thư mục backend_exemple
+                    git url: 'https://github.com/shieldx-bot/Learn_Jenkins.git', branch: 'main'
+                    // đi thẳng vào thư mục cần npm install
+                    dir('step2/backend2') {
+                        // dùng npm ci nếu bạn đang dùng package-lock.json để cài nhanh, an toàn
+                        sh 'npm install'
+                    }
                 }
             }
-             
+            post{
+                always{
+                    echo "========always========"
+                }
+                success{
+                    echo "========Git Clone Repository and Run Tests executed successfully ========"
+                }
+                failure{
+                    echo "========Git Clone Repository and Run Tests execution failed========"
+                }
+            }
         }
+
         stage("Build Docker Image") {
-            when { 
-               ` anyOf { 
+            when {
+                anyOf {
                     branch 'main'
                     branch 'dev'
                 }
             }
-            steps { 
-                dir('backend_exemple')  { 
-                  sh "echo ${DOCKER_CREADS_PSW} | docker login -u $DOCKER_CREADS_USR --password-stdin"
-                  sh "cd ./step2/backend2 && docker build -t ${image_name}:${image_tag} ."
-                  sh "docker push ${image_name}:${image_tag}"
-
+            steps {
+                dir('backend_exemple')  {
+                    // nếu DOCKER_HUB là username/password credential thì biến tạo ra sẽ là DOCKER_HUB_USR / DOCKER_HUB_PSW
+                    // chạy docker login
+                    sh """
+                        echo "${DOCKER_HUB_PSW}" | docker login -u "${DOCKER_HUB_USR}" --password-stdin
+                        cd ./step2/backend2
+                        docker build -t ${image_name}:${image_tag} .
+                        docker push ${image_name}:${image_tag}
+                    """
                 }
             }
-             
+            post{
+                always{
+                    echo "========always========"
+                }
+                success{
+                    echo "========Build Docker Image executed successfully ========"
+                }
+                failure{
+                    echo  "========Build Docker Image execution failed========"
+                }
+            }
         }
+
         stage("Deploy Docker Image to Microk8s") {
-            when { 
+            when {
                 branch 'main'
             }
             steps {
-                 dir('backend_exemple') { 
-                    withKubeConfig([credentialsId : 'kubeconfig-jenkins']) { 
+                dir('backend_exemple') {
+                    withKubeConfig([credentialsId : 'kubeconfig-jenkins']) {
+                        // thay Docker_version trong yaml bằng tag vừa build
+                        // dùng '|' làm delimiter để tránh / trong tag
                         sh "sed -i 's|Docker_version|${image_tag}|g' ./step2/k8s/Deployment.yaml"
                         sh 'cat ./step2/k8s/Deployment.yaml'
+                        // Nếu cần sudo cho microk8s, bạn phải cấu hình agent để có quyền hoặc dùng sudo không-interactive
                         sh 'microk8s kubectl apply -f ./step2/k8s/Deployment.yaml'
-                        sh 'microk8s kubectl get pods'
-                        sh 'microk8s kubectl rollout status deployment.apps/step2-backend-deployment'
+                        sh 'microk8s kubectl get pods --namespace=default'
+                        sh 'microk8s kubectl rollout status deployment.apps/step2-backend-deployment --namespace=default'
                     }
-                 }
+                }
             }
-            
+            post{
+                always{
+                    echo "========always========"
+                }
+                success{
+                    echo "========Deploy Docker Image to Microk8s executed successfully ========"
+                }
+                failure{
+                    echo  "========Deploy Docker Image to Microk8s execution failed========"
+                }
+            }
         }
-    
-        
     }
+
     post{
         always{
             echo "========always========"
         }
         success{
-             notifyTelegram("Jenkins Pipeline Succeeded for ${JOB_NAME} - Build #${BUILD_NUMBER} \n Check details at: ${BUILD_URL}")
+            script {
+                // url-encode message to avoid issues with special chars
+                def msg = "Jenkins Pipeline Succeeded for ${JOB_NAME} - Build #${BUILD_NUMBER} \\n Check details at: ${BUILD_URL}"
+                sh """curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${msg}" """
+            }
             echo "========pipeline executed successfully========"
         }
         failure{
-                notifyTelegram("Jenkins Pipeline Failed for ${JOB_NAME} - Build #${BUILD_NUMBER} \n Check details at: ${BUILD_URL}")
-                echo "========pipeline execution failed========"
-            
-         }
+            script {
+                def msg = "Jenkins Pipeline Failed for ${JOB_NAME} - Build #${BUILD_NUMBER} \\n Check details at: ${BUILD_URL}"
+                sh """curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${msg}" """
+            }
+            echo "========pipeline execution failed========"
+        }
     }
-}
-
-def notifyTelegram(String message){ 
-    sh "curl  -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage -d chat_id=${TELEGRAM_CHAT_ID} -d text='${message}'"
 }
