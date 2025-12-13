@@ -39,7 +39,7 @@ pipeline {
             steps {
                 dir('backend_exemple')  {
                     // clone vào thư mục backend_exemple
-                    git url: 'https://github.com/shieldx-bot/Learn_Jenkins.git', branch: 'main'
+                    git url: 'https://github.com/shieldx-bot/Learn_Jenkins.git', branch: "${BRANCH_NAME}"
                     // đi thẳng vào thư mục cần npm install
                     dir('step2/backend2') {
                         // dùng npm ci nếu bạn đang dùng package-lock.json để cài nhanh, an toàn
@@ -130,17 +130,21 @@ pipeline {
         }
         success{
             script {
-                // url-encode message to avoid issues with special chars
-                def msg = "Jenkins Pipeline Succeeded for ${JOB_NAME} - Build #${BUILD_NUMBER} \\n Check details at: ${BUILD_URL}"
-                sh """curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${msg}" """
+                NotifyTelegram("SUCCESS")
             }
             echo "========pipeline executed successfully========"
         }
         failure{
-            script {
-                def msg = "Jenkins Pipeline Failed for ${JOB_NAME} - Build #${BUILD_NUMBER} \\n Check details at: ${BUILD_URL}"
-`            }
+            script{
+                NotifyTelegram("FAILED")
+            }
             echo "========pipeline execution failed========"
         }
     }
+}
+
+
+def NotifyTelegram(String status) {
+    def msg = "Jenkins Pipeline ${status} for ${JOB_NAME} - Build #${BUILD_NUMBER} \\n Check details at: ${BUILD_URL}"
+    sh """curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${msg}" """
 }
