@@ -139,8 +139,7 @@ pipeline {
         failure{
             script {
                 def msg = "Jenkins Pipeline Failed for ${JOB_NAME} - Build #${BUILD_NUMBER} \\n Check details at: ${BUILD_URL}"
-                sh """curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${msg}" """
-            }
+`            }
             echo "========pipeline execution failed========"
         }
     }
