@@ -71,12 +71,12 @@ pipeline {
                 dir('backend_exemple')  {
                     // nếu DOCKER_HUB là username/password credential thì biến tạo ra sẽ là DOCKER_HUB_USR / DOCKER_HUB_PSW
                     // chạy docker login
-                    sh """
-                        echo "${DOCKER_HUB_PSW}" | docker login -u "${DOCKER_HUB_USR}" --password-stdin
+                    sh '''
+                        echo "$DOCKER_HUB_PSW" | docker login -u "$DOCKER_HUB_USR" --password-stdin
                         cd ./step2/backend2
-                        docker build -t ${image_name}:${image_tag} .
-                        docker push ${image_name}:${image_tag}
-                    """
+                        docker build -t ''' + image_name + ':' + image_tag + ''' .
+                        docker push ''' + image_name + ':' + image_tag + '''
+                    '''
                 }
             }
             post{
@@ -146,5 +146,5 @@ pipeline {
 
 def NotifyTelegram(String status) {
     def msg = "Jenkins Pipeline ${status} for ${JOB_NAME} - Build #${BUILD_NUMBER} \nCheck details at: ${BUILD_URL}"
-    sh """curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${msg}" """
+    sh '''curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=''' + msg + '''" '''
 }
