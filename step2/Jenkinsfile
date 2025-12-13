@@ -55,7 +55,8 @@ pipeline{
         stage("Build Docker Image") {
             when { 
                 anyOf { 
-                    branch 'main'
+                    branch 'main'                  sh "cd ./step2/backend2 && docker build -t ${image_name}:${image_tag} ."
+
                     branch 'dev'
                 }
             }
@@ -63,6 +64,7 @@ pipeline{
                 dir('backend_exemple')  { 
                   sh "echo ${DOCKER_CREADS_PSW} | docker login -u $DOCKER_CREADS_USR --password-stdin"
                   sh "cd ./step2/backend2 && docker build -t ${image_name}:${image_tag} ."
+                  sh "docker push ${image_name}:${image_tag}"
 
                 }
             }
