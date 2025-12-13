@@ -13,17 +13,7 @@ pipeline{
             steps{
                 cleanWs()
             }
-            post{
-                always{
-                    echo "========always========"
-                }
-                success{
-                    echo "========Clean Workspace executed successfully========"
-                }
-                failure{
-                    echo "========Clean Workspace execution failed========"
-                }
-            }
+            
         }
 
         stage("Git Clone Repository and Run Tests"){ 
@@ -40,21 +30,11 @@ pipeline{
                     
                 }
             }
-            post{
-                always{
-                    echo "========always========"
-                }
-                success{
-                    echo "========Git Clone Repository and Run Tests executed successfully ========"
-                }
-                failure{
-                    echo "========Git Clone Repository and Run Tests execution failed========"
-                }
-            }
+             
         }
         stage("Build Docker Image") {
             when { 
-                anyOf { 
+               ` anyOf { 
                     branch 'main'
                     branch 'dev'
                 }
@@ -67,17 +47,7 @@ pipeline{
 
                 }
             }
-            post{ 
-                always{ 
-                    echo "========always========"
-                }
-                success { 
-                    echo "========Build Docker Image executed successfully ========"
-                }
-                failure { 
-                    echo  "========Build Docker Image execution failed========"
-                }
-            }
+             
         }
         stage("Deploy Docker Image to Microk8s") {
             when { 
@@ -94,17 +64,7 @@ pipeline{
                     }
                  }
             }
-            post { 
-                always { 
-                    echo "========always========"
-                }
-                success { 
-                    echo "========Deploy Docker Image to Microk8s executed successfully ========"
-                }
-                failure { 
-                    echo  "========Deploy Docker Image to Microk8s execution failed========"
-                }
-            }
+            
         }
     
         
