@@ -43,7 +43,10 @@ pipeline {
                     // đi thẳng vào thư mục cần npm install
                     dir('step2/backend2') {
                         // dùng npm ci nếu bạn đang dùng package-lock.json để cài nhanh, an toàn
+                        sh 'npm build'
                         sh 'npm install'
+                        sh 'ls'
+                        
                     }
                 }
             }
