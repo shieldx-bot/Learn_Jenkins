@@ -15,7 +15,7 @@ spec:
         - name: step2-backend-deployment
           image: shieldxbot/backend_exemple:Docker_version
           workingDir: /app
-          command: ["node", "dist/index.js"]
+          command: ["node", "./dist/index.js"]
           resources:
             limits:
               memory: "256Mi"
