@@ -55,8 +55,7 @@ pipeline{
         stage("Build Docker Image") {
             when { 
                 anyOf { 
-                    branch 'main'                  sh "cd ./step2/backend2 && docker build -t ${image_name}:${image_tag} ."
-
+                    branch 'main'
                     branch 'dev'
                 }
             }
