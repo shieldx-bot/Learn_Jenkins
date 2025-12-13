@@ -15,7 +15,7 @@ spec:
         - name: step2-backend-deployment
           image: shieldxbot/backend_exemple:Docker_version
           workingDir: /app
-          command: ["node", "./dist/index.js"]
+          command: ["node", "dist/index.js"]
           resources:
             limits:
               memory: "256Mi"
@@ -25,6 +25,9 @@ spec:
               cpu: "500m"
           ports:
             - containerPort: 3000
+              targetPort: 3000
+              nodePort: 30000
+
           env:
             - name: NODE_ENV
               value: "production"
