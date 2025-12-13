@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: step2-backend-deployment
 spec:
+  type: NodePort
   selector:
     matchLabels:
       app: step2-backend-deployment
