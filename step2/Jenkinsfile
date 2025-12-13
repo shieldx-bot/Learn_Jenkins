@@ -8,7 +8,7 @@ pipeline {
         TELEGRAM_TOKEN = credentials('telegram-bot-token')
         TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
         image_name = 'shieldxbot/backend_exemple'
-        image_tag = "v${BUILD_NUMBER}-${BRANCH_NAME}"
+        image_tag = "v${BUILD_NUMBER}-${BRANCH_NAME.replaceAll('/', '-')}"
     }
     stages{
 
@@ -105,8 +105,8 @@ pipeline {
                         sh 'cat ./step2/k8s/Deployment.yaml'
                         // Nếu cần sudo cho microk8s, bạn phải cấu hình agent để có quyền hoặc dùng sudo không-interactive
                         sh 'microk8s kubectl apply -f ./step2/k8s/Deployment.yaml'
-                        sh 'microk8s kubectl get pods --namespace=default'
-                        sh 'microk8s kubectl rollout status deployment.apps/step2-backend-deployment --namespace=default'
+                        sh 'microk8s kubectl get pods '
+                        sh 'microk8s kubectl rollout status deployment.apps/step2-backend-deployment  '
                     }
                 }
             }
@@ -145,6 +145,6 @@ pipeline {
 
 
 def NotifyTelegram(String status) {
-    def msg = "Jenkins Pipeline ${status} for ${JOB_NAME} - Build #${BUILD_NUMBER} \\n Check details at: ${BUILD_URL}"
+    def msg = "Jenkins Pipeline ${status} for ${JOB_NAME} - Build #${BUILD_NUMBER} \nCheck details at: ${BUILD_URL}"
     sh """curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" --data-urlencode "text=${msg}" """
 }
