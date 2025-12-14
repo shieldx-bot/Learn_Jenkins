@@ -4,8 +4,10 @@ metadata:
   name: step2-backend-ingress
   labels:
     app.kubernetes.io/name: myingress
+  annotations:
+    kubernetes.io/ingress.class: traefik
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   rules:
     - host: shieldx-app.local
       http:
@@ -14,6 +16,6 @@ spec:
             path: "/"
             backend:
               service:
-                name: step2-backend-ingress
+                name: step2-backend-service
                 port:
                   number: 3000
