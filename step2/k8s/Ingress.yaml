@@ -5,6 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: myingress
 spec:
+  ingressClassName: nginx
   rules:
     - host: shieldx-app.local
       http:
