@@ -1,92 +1,125 @@
 pipeline {
     agent any
-    environment{
-        // Nếu 'docker-hub-login' là username/password credential, Jenkins sẽ tạo:
-        // DOCKER_HUB_USR và DOCKER_HUB_PSW
-        DOCKER_HUB = credentials('docker-hub-login')
-        // Nếu telegram token/chat id là secret text, thì biến sẽ chứa giá trị trực tiếp
+
+    environment {
+        IMAGE_NAME = 'shieldxbot/backend_exemple_new'  // Thay đổi tên image nếu cần
+        // Lưu ý: TELEGRAM_TOKEN và TELEGRAM_CHAT_ID -> credential kiểu "Secret text"
         TELEGRAM_TOKEN = credentials('telegram-bot-token')
         TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
-        image_name = 'shieldxbot/backend_exemple'
-        image_tag = "v${BUILD_NUMBER}-${BRANCH_NAME}"
-        git-credentials = credentials('git-credentials')
     }
-    stages{
 
-        
-       stage("Update Manifest (GitOps)") {
-            when {
-                branch 'main'
-            }
+    stages {
+
+        stage('Prepare') {
             steps {
                 script {
-                     env.IMAGE_TAG = "v${env.BUILD_NUMBER}-${env.BRANCH_NAME ?: 'main'}"
+                    def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'main'
+                    branch = branch.replaceAll('origin/', '')
+                    env.IMAGE_TAG = "v${BUILD_NUMBER}-${branch}"
+                    echo "Using IMAGE_TAG=${env.IMAGE_TAG}"
                 }
-                withCredentials([usernamePassword(credentialsId: 'git-credentials', passwordVariable: 'GIT_PSW', usernameVariable: 'GIT_USR')]) {
-                    dir('app1') { 
-                        sh ' git config --global user.email "jenkins-bot@shieldx.local" '
-                        sh ' git config --global user.name "jenkins-bot" '
-                        sh ' git clone https://$GIT_USR:$GIT_PSW@github.com/shieldx-bot/Learn_Jenkins.git'
-                        dir('Learn_Jenkins') {
-                            sh '''
-                                cd k8s-manifests
-                                sed -i "s|image: shieldxbot/backend_exemple:.*|image: shieldxbot/backend_exemple:${IMAGE_TAG}|g" ./k8s/deployment.yaml
-                                git add ./k8s/deployment.yaml
-                                git commit -m "Update backend image to ${IMAGE_TAG}"
-                                git push origin main
-                            '''
-                            sh """
-                            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ./step2/backend2
-                            docker login -u ${DOCKER_HUB_USR} -p ${DOCKER_HUB_PSW}
-                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                            """
-                    }
-                }
-  
             }
         }
 
-        stage('Update GitOps Mainfest'){ 
+        stage('Build & Push Docker Image') {
             steps {
-                script {
-                    env.IMAGE_TAG = "v${env.BUILD_NUMBER}-${env.BRANCH_NAME ?: 'main'}"
-                }
-                withCredentials([usernamePassword(credentialsId: 'git-credentials', passwordVariable: 'GIT_PSW', usernameVariable: 'GIT_USR')]) {
-                    dir('app2') { 
-                        sh ' git config --global user.email "jenkins-bot@shieldx.local" '
-                        sh ' git config --global user.name "jenkins-bot" '
-                        sh ' git clone https://$GIT_USR:$GIT_PSW@github.com/shieldx-bot/my-gitops-config.git'
-                        dir('my-gitops-config') {
-                            sh '''
-                                cd k8s
-                                sed -i "s|image: shieldxbot/backend_exemple:.*|image: shieldxbot/backend_exemple:${IMAGE_TAG}|g" ./backend-deployment.yaml
-                                git add ./backend-deployment.yaml
-                                git commit -m "Update backend image to ${IMAGE_TAG}"
-                                git push origin main
-                            '''
-                        }
+                // Dùng withCredentials để chắc chắn biến tồn tại tại chỗ cần dùng
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-login', usernameVariable: 'DOCKER_HUB_USR', passwordVariable: 'DOCKER_HUB_PSW')]) {
+                    
+                     sh '''
+                      
+                       rm -rf Learn_Jenkins
+                         ls -la
+                       git clone  https://github.com/shieldx-bot/Learn_Jenkins.git
+                    
+                       cd Learn_Jenkins 
+                        set -e
+                        echo "Building image ${IMAGE_NAME}:${IMAGE_TAG}"
 
-                    }
+                        # đảm bảo path đúng
+                        ls -la ./step2/backend2 || (echo "ERROR: build context ./step2/backend2 not found" && exit 1)
+
+                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ./step2/backend2
+
+                        # login an toàn: password qua stdin
+                        echo "${DOCKER_HUB_PSW}" | docker login -u "${DOCKER_HUB_USR}" --password-stdin
+
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        
+                     
+                    '''
                 }
             }
-        } 
         }
 
+        stage('Update GitOps Manifest') {
+            steps {
+                script {
+                    // Debug: kiểm tra branch hiện tại
+                    echo "BRANCH_NAME: ${env.BRANCH_NAME}"
+                    echo "GIT_BRANCH: ${env.GIT_BRANCH}"
+                    echo "Current branch detection: ${env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'unknown'}"
+                }
+                
+                withCredentials([usernamePassword(credentialsId: 'git_credentials', usernameVariable: 'GIT_USR', passwordVariable: 'GIT_PSW')]) {
+                    sh '''
+                        set -e
 
-        
-    } 
+                        # xóa thư mục cũ nếu tồn tại
+                        rm -rf my-gitops-config
+                        ls -la
+
+                        # tạo ~/.netrc để git clone/push không hỏi mật khẩu
+                        cat > ~/.netrc <<EOF
+machine github.com
+login ${GIT_USR}
+password ${GIT_PSW}
+EOF
+                        chmod 600 ~/.netrc
+
+                        # cấu hình git
+                        git config --global user.email "jenkins-bot@shieldx.local"
+                        git config --global user.name "jenkins-bot"
+
+                        # clone repo gitops
+                        git clone https://github.com/shieldx-bot/my-gitops-config.git
+                        cd my-gitops-config/k8s
+
+                        # cập nhật image tag trong manifest
+                        sed -i "s|image: shieldxbot/backend_exemple:.*|image: shieldxbot/backend_exemple:${IMAGE_TAG}|g" Deployment.yaml
+                        cat Deployment.yaml
+
+                        # commit và push
+                        git add Deployment.yaml
+                        git commit -m "GitOps: update backend image to ${IMAGE_TAG}" || echo "No changes to commit"
+                        git push origin main
+
+                        # dọn dẹp
+                        cd ../..
+                        rm -f ~/.netrc
+                        
+                        echo "✅ GitOps manifest updated successfully!"
+                    '''
+                }
+            }
+        }
+    }
+
     post {
         success {
-            NotifyTelegram("SUCCEEDED")
+            script { NotifyTelegram("SUCCEEDED") }
         }
         failure {
-            NotifyTelegram("FAILED")
+            script { NotifyTelegram("FAILED") }
         }
     }
 }
 
-
 def NotifyTelegram(String status) {
-    def msg = "Jenkins Pipeline ${status} for ${JOB_NAME} - Build #${BUILD_NUMBER} \nCheck details at: ${BUILD_URL}"
-    sh '''curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" --data-urlencode "text=''' + msg + '''" '''
+    def msg = "Jenkins ${status}\\nJob: ${JOB_NAME}\\nBuild: #${BUILD_NUMBER}\\n${BUILD_URL}"
+    sh """
+        curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${msg}"
+    """
 }
