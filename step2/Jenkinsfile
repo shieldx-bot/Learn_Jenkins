@@ -8,141 +8,55 @@ pipeline {
         TELEGRAM_TOKEN = credentials('telegram-bot-token')
         TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
         image_name = 'shieldxbot/backend_exemple'
-        image_tag = "v${BUILD_NUMBER}-${BRANCH_NAME.replaceAll('/', '-')}"
+        image_tag = "v${BUILD_NUMBER}-${BRANCH_NAME}"
     }
     stages{
 
-        stage("Clean Workspace"){
-            steps{
-                cleanWs()
-            }
-            post{
-                always{
-                    echo "========always========"
-                }
-                success{
-                    echo "========Clean Workspace executed successfully========"
-                }
-                failure{
-                    echo "========Clean Workspace execution failed========"
-                }
-            }
-        }
-
-        stage("Git Clone Repository and Run Tests"){
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'dev'
-                }
-            }
-            steps {
-                dir('backend_exemple')  {
-                    // clone vào thư mục backend_exemple
-                    git url: 'https://github.com/shieldx-bot/Learn_Jenkins.git', branch: "${BRANCH_NAME}"
-                    // đi thẳng vào thư mục cần npm install
-                    dir('step2/backend2') {
-                        // dùng npm ci nếu bạn đang dùng package-lock.json để cài nhanh, an toàn
-                        sh 'npm install'
-                        sh 'npm run build'
-                        sh 'ls'
-                        
-                    }
-                }
-            }
-            post{
-                always{
-                    echo "========always========"
-                }
-                success{
-                    echo "========Git Clone Repository and Run Tests executed successfully ========"
-                }
-                failure{
-                    echo "========Git Clone Repository and Run Tests execution failed========"
-                }
-            }
-        }
-
-        stage("Build Docker Image") {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'dev'
-                }
-            }
-            steps {
-                dir('backend_exemple')  {
-                    // nếu DOCKER_HUB là username/password credential thì biến tạo ra sẽ là DOCKER_HUB_USR / DOCKER_HUB_PSW
-                    // chạy docker login
-                    sh '''
-                        echo "$DOCKER_HUB_PSW" | docker login -u "$DOCKER_HUB_USR" --password-stdin
-                        cd ./step2/backend2
-                        docker build -t ''' + image_name + ':' + image_tag + ''' .
-                        docker push ''' + image_name + ':' + image_tag + '''
-                    '''
-                }
-            }
-            post{
-                always{
-                    echo "========always========"
-                }
-                success{
-                    echo "========Build Docker Image executed successfully ========"
-                }
-                failure{
-                    echo  "========Build Docker Image execution failed========"
-                }
-            }
-        }
-
-        stage("Deploy Docker Image to Microk8s") {
+        
+       stage("Update Manifest (GitOps)") {
             when {
                 branch 'main'
             }
             steps {
+                script {
+    env.IMAGE_TAG = "v${env.BUILD_NUMBER}-${env.BRANCH_NAME ?: 'main'}"
+}
+
                 dir('backend_exemple') {
-                    withKubeConfig([credentialsId : 'kubeconfig-jenkins']) {
-                        // thay Docker_version trong yaml bằng tag vừa build
-                        // dùng '|' làm delimiter để tránh / trong tag
-                        sh "sed -i 's|Docker_version|${image_tag}|g' ./step2/k8s/Deployment.yaml"
-                        sh 'cat ./step2/k8s/Deployment.yaml'
-                        // Nếu cần sudo cho microk8s, bạn phải cấu hình agent để có quyền hoặc dùng sudo không-interactive
-                        sh '  kubectl apply -f ./step2/k8s'
-                         sh '  kubectl get pods'
-                        sh '  kubectl get svc'
-                        sh '  kubectl rollout status deployment.apps/step2-backend-deployment'
+                    script {
+                        // 1. Dùng SED để sửa file Deployment.yaml (thay tag ảnh mới)
+                        sh "sed -i 's|Docker_version|${env.IMAGE_TAG}|g' ./step2/k8s/Deployment.yaml"
+                        
+                        // 2. Commit và Push lên GitHub
+                        withCredentials([usernamePassword(credentialsId: 'git-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                            sh """
+                                git config user.email "jenkins-bot@shieldx.local"
+                                git config user.name "Jenkins Bot"
+                                
+                                // Add file đã sửa
+                                git add ./step2/k8s/Deployment.yaml
+                                
+                                // Commit
+                                git commit -m "Deploy: Update version to ${env.IMAGE_TAG}"
+                                
+                                // Push (Dùng token để xác thực)
+                                git push https://${GIT_USER}:${GIT_PASS}@github.com/shieldx-bot/Learn_Jenkins.git HEAD:main
+                            """
+                        }
                     }
                 }
             }
-            post{
-                always{
-                    echo "========always========"
-                }
-                success{
-                    echo "========Deploy Docker Image to Microk8s executed successfully ========"
-                }
-                failure{
-                    echo  "========Deploy Docker Image to Microk8s execution failed========"
-                }
-            }
         }
-    }
 
-    post{
-        always{
-            echo "========always========"
+
+        
+    } 
+    post {
+        success {
+            NotifyTelegram("SUCCEEDED")
         }
-        success{
-            script {
-                NotifyTelegram("SUCCESS")
-            }
-            echo "========pipeline executed successfully========"
-        }
-        failure{
-            script{
-                NotifyTelegram("FAILED")
-            }
-            echo "========pipeline execution failed========"
+        failure {
+            NotifyTelegram("FAILED")
         }
     }
 }
