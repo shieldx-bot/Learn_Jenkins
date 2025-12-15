@@ -9,6 +9,7 @@ pipeline {
         TELEGRAM_CHAT_ID = credentials('telegram-chat-id')
         image_name = 'shieldxbot/backend_exemple'
         image_tag = "v${BUILD_NUMBER}-${BRANCH_NAME}"
+        git-credentials = credentials('git-credentials')
     }
     stages{
 
@@ -19,33 +20,56 @@ pipeline {
             }
             steps {
                 script {
-    env.IMAGE_TAG = "v${env.BUILD_NUMBER}-${env.BRANCH_NAME ?: 'main'}"
-}
-
-                dir('backend_exemple') {
-                    script {
-                        // 1. Dùng SED để sửa file Deployment.yaml (thay tag ảnh mới)
-                        sh "sed -i 's|Docker_version|${env.IMAGE_TAG}|g' ./step2/k8s/Deployment.yaml"
-                        
-                        // 2. Commit và Push lên GitHub
-                        withCredentials([usernamePassword(credentialsId: 'git-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                     env.IMAGE_TAG = "v${env.BUILD_NUMBER}-${env.BRANCH_NAME ?: 'main'}"
+                }
+                withCredentials([usernamePassword(credentialsId: 'git-credentials', passwordVariable: 'GIT_PSW', usernameVariable: 'GIT_USR')]) {
+                    dir('app1') { 
+                        sh ' git config --global user.email "jenkins-bot@shieldx.local" '
+                        sh ' git config --global user.name "jenkins-bot" '
+                        sh ' git clone https://$GIT_USR:$GIT_PSW@github.com/shieldx-bot/Learn_Jenkins.git'
+                        dir('Learn_Jenkins') {
+                            sh '''
+                                cd k8s-manifests
+                                sed -i "s|image: shieldxbot/backend_exemple:.*|image: shieldxbot/backend_exemple:${IMAGE_TAG}|g" ./k8s/deployment.yaml
+                                git add ./k8s/deployment.yaml
+                                git commit -m "Update backend image to ${IMAGE_TAG}"
+                                git push origin main
+                            '''
                             sh """
-                                git config user.email "jenkins-bot@shieldx.local"
-                                git config user.name "Jenkins Bot"
-                                
-                                // Add file đã sửa
-                                git add ./step2/k8s/Deployment.yaml
-                                
-                                // Commit
-                                git commit -m "Deploy: Update version to ${env.IMAGE_TAG}"
-                                
-                                // Push (Dùng token để xác thực)
-                                git push https://${GIT_USER}:${GIT_PASS}@github.com/shieldx-bot/Learn_Jenkins.git HEAD:main
+                            docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ./step2/backend2
+                            docker login -u ${DOCKER_HUB_USR} -p ${DOCKER_HUB_PSW}
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
                             """
+                    }
+                }
+  
+            }
+        }
+
+        stage('Update GitOps Mainfest'){ 
+            steps {
+                script {
+                    env.IMAGE_TAG = "v${env.BUILD_NUMBER}-${env.BRANCH_NAME ?: 'main'}"
+                }
+                withCredentials([usernamePassword(credentialsId: 'git-credentials', passwordVariable: 'GIT_PSW', usernameVariable: 'GIT_USR')]) {
+                    dir('app2') { 
+                        sh ' git config --global user.email "jenkins-bot@shieldx.local" '
+                        sh ' git config --global user.name "jenkins-bot" '
+                        sh ' git clone https://$GIT_USR:$GIT_PSW@github.com/shieldx-bot/my-gitops-config.git'
+                        dir('my-gitops-config') {
+                            sh '''
+                                cd k8s
+                                sed -i "s|image: shieldxbot/backend_exemple:.*|image: shieldxbot/backend_exemple:${IMAGE_TAG}|g" ./backend-deployment.yaml
+                                git add ./backend-deployment.yaml
+                                git commit -m "Update backend image to ${IMAGE_TAG}"
+                                git push origin main
+                            '''
                         }
+
                     }
                 }
             }
+        } 
         }
 
 

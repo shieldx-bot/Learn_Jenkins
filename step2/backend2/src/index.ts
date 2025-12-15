@@ -9,5 +9,5 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}, Hello  World Typescript! GitOps V1!`);
+  console.log(`Server is running on http://localhost:${port}, Hello  World Typescript! GitOps V2!`);
 });
