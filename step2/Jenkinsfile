@@ -86,7 +86,7 @@ EOF
                         cd my-gitops-config/k8s
 
                         # cập nhật image tag trong manifest
-                        sed -i "s|image: shieldxbot/backend_exemple:.*|image: shieldxbot/backend_exemple:${IMAGE_TAG}|g" Deployment.yaml
+                        sed -i "s|image: shieldxbot/backend_exemple_new:.*|image: shieldxbot/backend_exemple_new:${IMAGE_TAG}|g" Deployment.yaml
                         cat Deployment.yaml
 
                         # commit và push
