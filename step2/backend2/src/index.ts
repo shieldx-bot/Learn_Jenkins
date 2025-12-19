@@ -1,4 +1,5 @@
 // src/index.ts
+import './tracing';
 import express, { Request, Response } from 'express';
 
 const app = express();

@@ -1,15 +1,14 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
-const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 
 const serviceName = process.env.OTEL_SERVICE_NAME || 'step2-backend-service';
-const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://jaeger.monitoring:4317';
+const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://jaeger.monitoring:4318';
 
 const traceExporter = new OTLPTraceExporter({
-    // Node gRPC exporter accepts endpoint; default s credentials are insecure for inside-cluster comms
-    url: 'http://jaeger-collector.monitoring:4318/v1/traces',
+    url: `${otlpEndpoint.replace(/\/$/, '')}/v1/traces`,
 });
 
 const sdk = new NodeSDK({
