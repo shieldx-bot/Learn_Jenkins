@@ -23,4 +23,4 @@ COPY --from=builder /app/dist ./dist
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "--require", "./tracing.js", "./dist/index.js"]
+CMD ["node", "--require", "./dist/tracing.js", "./dist/index.js"]
