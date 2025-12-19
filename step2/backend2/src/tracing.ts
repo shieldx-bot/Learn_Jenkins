@@ -9,7 +9,7 @@ const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://jaeger.m
 
 const traceExporter = new OTLPTraceExporter({
     // Node gRPC exporter accepts endpoint; default s credentials are insecure for inside-cluster comms
-    url: otlpEndpoint,
+    url: 'http://jaeger-collector.monitoring:4318/v1/traces',
 });
 
 const sdk = new NodeSDK({
