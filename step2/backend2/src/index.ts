@@ -5,8 +5,17 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.get('/', async (req: Request, res: Response) => {
-  const randomDelay = Math.floor(Math.random() * 2000); // Random delay up to 2 seconds
-  await new Promise(resolve => setTimeout(resolve, randomDelay));
+  let delay;
+
+  if (Math.random() < 0.3) {
+    // 30% request rất chậm (500–2000ms)
+    delay = 500 + Math.random() * 1500;
+  } else {
+    // 70% request nhanh (10–50ms)
+    delay = 10 + Math.random() * 40;
+  }
+
+  await new Promise(r => setTimeout(r, delay));
   res.send('Hello from Express with TypeScript!');
 });
 
