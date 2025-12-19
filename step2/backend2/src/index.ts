@@ -4,7 +4,8 @@ import express, { Request, Response } from 'express';
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', async (req: Request, res: Response) => {
+  await new Promise(resolve => setTimeout(resolve, 500));
   res.send('Hello from Express with TypeScript!');
 });
 
