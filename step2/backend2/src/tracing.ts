@@ -4,11 +4,11 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 
-const serviceName = process.env.OTEL_SERVICE_NAME || 'backend2';
+const serviceName = process.env.OTEL_SERVICE_NAME || 'step2-backend-service';
 const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://jaeger.monitoring:4317';
 
 const traceExporter = new OTLPTraceExporter({
-    // Node gRPC exporter accepts endpoint; default credentials are insecure for inside-cluster comms
+    // Node gRPC exporter accepts endpoint; default s credentials are insecure for inside-cluster comms
     url: otlpEndpoint,
 });
 
