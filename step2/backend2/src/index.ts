@@ -17,7 +17,7 @@ app.get('/', async (req: Request, res: Response) => {
   }
 
   await new Promise(r => setTimeout(r, delay));
-  res.send('Hello from Express with TypeScript!');
+  res.send('Xin chao SRE Vietnam!');
 });
 
 app.listen(port, () => {
